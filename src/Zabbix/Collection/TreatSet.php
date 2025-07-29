@@ -20,11 +20,9 @@ final class TreatSet implements IteratorAggregate, Countable
             throw new TreatOptimizationException(ErrorCode::EMPTY_TREAT_SET);
         }
 
-        $this->treats = array_map(
-            fn(int $value, int $index) => new Treat($value, $index),
-            $values,
-            array_keys($values)
-        );
+        foreach ($values as $index => $value) {
+            $this->treats[] = new Treat($value, $index);
+        }
     }
 
     public function count(): int
