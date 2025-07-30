@@ -2,45 +2,34 @@
 
 namespace App\Zabbix\Collection;
 
-use App\Zabbix\Dto\Treat;
 use App\Zabbix\Enum\ErrorCode;
 use App\Zabbix\Exception\TreatOptimizationException;
-use ArrayIterator;
 use Countable;
-use IteratorAggregate;
 
-final class TreatSet implements IteratorAggregate, Countable
+final class TreatSet implements Countable
 {
-    /** @var Treat[] */
-    private array $treats;
+    private array $items = [];
 
-    public function __construct(array $values)
+    public function __construct(array $items = [])
     {
-        if (empty($values)) {
+        if (empty($items)) {
             throw new TreatOptimizationException(ErrorCode::EMPTY_TREAT_SET);
         }
 
-        foreach ($values as $index => $value) {
-            $this->treats[] = new Treat($value, $index);
-        }
+        $this->items = $items;
     }
 
     public function count(): int
     {
-        return count($this->treats);
+        return count($this->items);
     }
 
-    public function get(int $index): Treat
+    public function get(int $index): int
     {
-        if (!isset($this->treats[$index])) {
+        if (!isset($this->items[$index])) {
             throw new TreatOptimizationException(ErrorCode::INVALID_INDEX);
         }
 
-        return $this->treats[$index];
-    }
-
-    public function getIterator(): ArrayIterator
-    {
-        return new ArrayIterator($this->treats);
+        return $this->items[$index];
     }
 }

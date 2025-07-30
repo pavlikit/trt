@@ -5,40 +5,53 @@ namespace App\Zabbix\Service;
 use App\Zabbix\Collection\TreatSet;
 use App\Zabbix\Enum\ErrorCode;
 use App\Zabbix\Exception\TreatOptimizationException;
+use App\Zabbix\Interface\MemoizationInterface;
 use App\Zabbix\Interface\TreatOptimizerInterface;
 
 final class RecursiveTreatOptimizer implements TreatOptimizerInterface
 {
-    private array $memo = [];
+    private MemoizationInterface $memo;
+
+    public function __construct(MemoizationInterface $memo)
+    {
+        $this->memo = $memo;
+    }
 
     public function maximize(TreatSet $treatSet): int
     {
-        $count = $treatSet->count();
-
-        if ($count === 0) {
+        if ($treatSet->count() === 0) {
             throw new TreatOptimizationException(ErrorCode::EMPTY_TREAT_SET);
         }
 
-        $this->memo = [];
-        return $this->dp(0, $count - 1, 1, $treatSet);
+        $this->memo->reset();
+
+        return $this->calculateMaxValue(0, $treatSet->count() - 1, 1, $treatSet);
     }
 
-    private function dp(int $i, int $j, int $day, TreatSet $treatSet): int
+    private function calculateMaxValue(
+        int $start,
+        int $end,
+        int $day,
+        TreatSet $treatSet
+    ): int
     {
-        if ($i > $j) return 0;
-
-        if (isset($this->memo[$i][$j][$day])) {
-            return $this->memo[$i][$j][$day];
+        if ($start > $end) {
+            return 0;
         }
 
-        $leftValue = $treatSet->get($i)->value;
-        $rightValue = $treatSet->get($j)->value;
+        if ($this->memo->has($start, $end, $day)) {
+            return $this->memo->get($start, $end, $day);
+        }
 
-        $left = $leftValue * $day + $this->dp($i + 1, $j, $day + 1, $treatSet);
-        $right = $rightValue * $day + $this->dp($i, $j - 1, $day + 1, $treatSet);
+        $pickLeft = $treatSet->get($start) * $day
+            + $this->calculateMaxValue($start + 1, $end, $day + 1, $treatSet);
 
-        $max = max($left, $right);
+        $pickRight = $treatSet->get($end) * $day
+            + $this->calculateMaxValue($start, $end - 1, $day + 1, $treatSet);
 
-        return $this->memo[$i][$j][$day] = $max;
+        $maxValue = max($pickLeft, $pickRight);
+        $this->memo->set($start, $end, $day, $maxValue);
+
+        return $maxValue;
     }
 }

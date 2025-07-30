@@ -4,7 +4,7 @@ namespace App\Command;
 
 use App\Zabbix\Collection\TreatSet;
 use App\Zabbix\Exception\TreatOptimizationException;
-use App\Zabbix\Service\RecursiveTreatOptimizer;
+use App\Zabbix\Interface\TreatOptimizerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,32 +19,55 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 class OptimizeTreatsCommand extends Command
 {
+    private TreatOptimizerInterface $optimizer;
+
+    public function __construct(TreatOptimizerInterface $optimizer)
+    {
+        parent::__construct();
+        $this->optimizer = $optimizer;
+    }
 
     protected function configure(): void
     {
-        $this
-            ->addArgument('treats', InputArgument::REQUIRED, 'Comma-separated list of treat values');
+        $this->addArgument(
+            'treats',
+            InputArgument::REQUIRED,
+            'Comma-separated list of treat values (e.g., "1,2,3,4")'
+        );
     }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
-        $raw = $input->getArgument('treats');
-        $treats = array_map('intval', explode(',', $raw));
-
         try {
-            $treatSet = new TreatSet($treats);
-            $optimizer = new RecursiveTreatOptimizer();
-            $max = $optimizer->maximize($treatSet);
-            $io->success("Maximum value: $max");
+            $treatsInput = $input->getArgument('treats');
+            $treatValues = $this->parseTreats($treatsInput);
+
+            $treatSet = new TreatSet($treatValues);
+            $maxValue = $this->optimizer->maximize($treatSet);
+
+            $io->success("Maximum achievable value: $maxValue");
+            return Command::SUCCESS;
+
         } catch (TreatOptimizationException $e) {
-            $io->error($e->getMessage());
+            $io->error("Optimization error: " . $e->getMessage());
             return Command::FAILURE;
+
         } catch (\Throwable $e) {
             $io->error("Unexpected error: " . $e->getMessage());
             return Command::FAILURE;
         }
+    }
 
-        return Command::SUCCESS;
+    /**
+     * Parses the input treat string into an array of integers.
+     *
+     * @param string $input Comma-separated treat values
+     * @return int[]
+     */
+    private function parseTreats(string $input): array
+    {
+        return array_map('intval', array_filter(explode(',', $input), fn($val) => $val !== ''));
     }
 }

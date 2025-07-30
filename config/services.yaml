@@ -15,6 +15,8 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+    App\Zabbix\Interface\MemoizationInterface: '@App\Zabbix\Collection\MemoizationMap'
+    App\Zabbix\Service\TreatOptimizerInterface: '@App\Zabbix\Service\RecursiveTreatOptimizer'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
