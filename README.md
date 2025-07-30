@@ -13,7 +13,6 @@ A Symfony Console application that calculates the **maximum treat value** using 
 ```bash
 docker-compose build
 
-docker-compose run --rm symfony php bin/console app:optimize-treats "1,2,3,4"
 
 🧮 Run the optimizer
 Pass a comma-separated list of treat values:
